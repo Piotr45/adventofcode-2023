@@ -118,45 +118,71 @@ def find_lowest_location(filename: str, debug: bool = False) -> int:
     return min(seeds)
 
 
-def find_lowest_location_part_two(filename: str, debug: bool = False) -> int:
-    current_map = 0
-    seeds = None
-    dst, src, length = [], [], []
+def find_lowest_location_part_two(filename: str):
     with open(filename, "r", encoding="utf-8") as file:
-        lines = file.readlines()
-        for i, line in enumerate(lines):
-            if i == 0:
-                seeds_org = list(map(int, re.findall(r"(\d+)", line.lstrip("seeds: "))))
-                seeds = []
-                for j in range(0, len(seeds_org), 2):
-                    # print(j, seeds_org[j+1])
-                    seeds += [seeds_org[j] + k for k in range(seeds_org[j+1])]
-                    print(seeds, len(seeds))
-                continue
-            elif i == 1:
-                continue
-            nums = list(map(int, re.findall(r"(\d+)", line)))
-            if len(nums):
-                dst.append(nums[0])
-                src.append(nums[1])
-                length.append(nums[2])
-            # print(nums, dst, src, length)
-            if len(nums) == 0 and len(dst) != 0:
-                if debug:
-                    print(f"Processing map {current_map}")
-                    current_map += 1
-                seed_map = create_map(dst, src, length)
-                seeds = map_seeds(seeds, seed_map)
-                dst, src, length = [], [], []
-    if len(nums) != 0 and len(dst) != 0:
-        if debug:
-            print(f"Processing map {current_map}")
-            current_map += 1
-        seed_map = create_map(dst, src, length)
-        seeds = map_seeds(seeds, seed_map)
-    return min(seeds)
+        lines = [line.strip() for line in file.readlines()]
+    current_seeds, unmapped = [], []
+    next_seeds = [int(i) for i in re.findall(r"(\d+)", lines[0])]
+    lines = lines[2:]
+    lines = [i for i in lines if i != ""]
 
-    return
+    for line in lines:
+        numbers = re.findall(r"(\d+)", line)
+        if len(numbers) == 0:
+            current_seeds = next_seeds
+            current_seeds.extend(unmapped)
+            next_seeds = []
+            unmapped = []
+        else:
+            current_seeds.extend(unmapped)
+            unmapped = []
+            numbers = [int(num) for num in numbers]
+            current_destination = numbers[0]
+            current_source = numbers[1]
+            range_map = numbers[2]
+
+            while len(current_seeds) > 0:
+                if (
+                    current_seeds[0] < current_source + range_map
+                    and current_seeds[0] + current_seeds[1] > current_source
+                ):
+                    to_map_start = max(current_seeds[0], current_source)
+                    to_map_end = min(
+                        current_source + range_map, current_seeds[0] + current_seeds[1]
+                    )
+                    to_map_range = to_map_end - to_map_start
+
+                    mapped_start = current_destination + (to_map_start - current_source)
+                    mapped_range = to_map_range
+
+                    next_seeds.append(mapped_start)
+                    next_seeds.append(mapped_range)
+
+                    if current_seeds[0] < to_map_start:
+                        left_start = current_seeds[0]
+                        left_end = current_source
+                        left_range = left_end - left_start
+                        current_seeds.append(left_start)
+                        current_seeds.append(left_range)
+
+                    if current_seeds[0] + current_seeds[1] > to_map_end:
+                        right_start = current_source + range_map
+                        right_end = current_seeds[0] + current_seeds[1]
+                        right_range = right_end - right_start
+                        current_seeds.append(right_start)
+                        current_seeds.append(right_range)
+                else:
+                    unmapped.append(current_seeds[0])
+                    unmapped.append(current_seeds[1])
+
+                current_seeds.pop(0)
+                current_seeds.pop(0)
+
+    current_seeds = next_seeds
+    current_seeds.extend(unmapped)
+
+    locations = [current_seeds[i] for i in range(0, len(current_seeds), 2)]
+    return min(locations)
 
 
 def main() -> None:
