@@ -1,5 +1,27 @@
 """Advent of code Day 10
 
+You use the hang glider to ride the hot air from Desert Island all the way up to the floating metal island.
+ This island is surprisingly cold and there definitely aren't any thermals to glide on, 
+ so you leave your hang glider behind.
+
+You wander around for a while, but you don't find any people or animals. 
+However, you do occasionally find signposts labeled "Hot Springs" pointing in a seemingly consistent direction;
+ maybe you can find someone at the hot springs and ask them where the desert-machine parts are made.
+
+The landscape here is alien; even the flowers and trees are made of metal. 
+As you stop to admire some metal grass, you notice something metallic scurry away in your peripheral vision 
+and jump into a big pipe! It didn't look like any animal you've ever seen; if you want a better look, 
+you'll need to get ahead of it.
+
+Scanning the area, you discover that the entire field you're standing on is densely packed with pipes; 
+it was hard to tell at first because they're the same metallic silver color as the "ground". 
+You make a quick sketch of all of the surface pipes you can see (your puzzle input).
+
+--- Part Two ---
+
+You quickly reach the farthest point of the loop, but the animal never emerges. 
+Maybe its nest is within the area enclosed by the loop?
+
 """
 
 import re
@@ -80,52 +102,39 @@ def pipe_maze(filename: str, debug: bool = False) -> int:
     return max([max(dst) for dst in distance_map])
 
 
-def find_area_enclosed_by_pies(distance_map: list) -> int:
-    # dummy way to fill all -1 outside
-    filling = True
-    while filling:
-        filling = False
-        for ridx in range(len(distance_map)):
-            for cidx in range(len(distance_map[0])):
-                if distance_map[ridx][cidx] == -1:
-                    if (ridx + 1) >= len(distance_map) or (ridx - 1) < 0:
-                        distance_map[ridx][cidx] = "O"
-                        filling = True
-                    if (cidx + 1) >= len(distance_map[0]) or (cidx - 1) < 0:
-                        distance_map[ridx][cidx] = "O"
-                        filling = True
-                    try:
-                        if (
-                            distance_map[ridx - 1][cidx] == "O"
-                            or distance_map[ridx + 1][cidx] == "O"
-                            or distance_map[ridx][cidx - 1] == "O"
-                            or distance_map[ridx][cidx + 1] == "O"
-                            or distance_map[ridx + 1][cidx + 1] == "O"
-                            or distance_map[ridx - 1][cidx + 1] == "O"
-                            or distance_map[ridx + 1][cidx - 1] == "O"
-                            or distance_map[ridx - 1][cidx - 1] == "O"
-                            or distance_map[ridx + 1][cidx] == "O"
-                            or distance_map[ridx - 1][cidx] == "O"
-                        ):
-                            distance_map[ridx][cidx] = "O"
-                            filling = True
-                    except IndexError:
-                        pass
-    return
+def create_path(connection_map: dict, starting_point: tuple) -> list:
+    path = [starting_point]
+    prev_node = starting_point
+    current_node = connection_map[starting_point][1]
+    while True:
+        path.append(current_node)
+        if prev_node == connection_map[current_node][0]:
+            prev_node = current_node
+            current_node = connection_map[current_node][1]
+        else:
+            prev_node = current_node
+            current_node = connection_map[current_node][0]
+        if current_node == starting_point:
+            break
+    return path
 
 
 def pipe_maze_part_two(filename: str, debug: bool = False) -> int:
     with open(filename, "r", encoding="utf-8") as file:
         lines = [line.strip() for line in file.readlines()]
-        if debug:
-            for line in lines:
-                print(line.strip())
+        grid = (len(lines), len(lines[0]))
         distance_map = [[-1 for _ in row] for row in lines]
         connection_map, start_point = create_maze_schematic(lines)
-        fill_distance_map(connection_map, start_point, distance_map)
-        find_area_enclosed_by_pies(distance_map)
-        result = sum([dst.count(-1) for dst in distance_map])
-
+        path = create_path(connection_map, start_point)
+        result = 0
+        p = Path(path)
+        for x in range(grid[0]):
+            for y in range(grid[1]):
+                if (x, y) in path:
+                    continue
+                if p.contains_point((x, y)):
+                    distance_map[x][y] = "I"
+                    result += 1
         if debug:
             for dst in distance_map:
                 print(" ".join(["." if d == -1 else str(d) for d in dst]))
@@ -142,7 +151,7 @@ def main() -> None:
 
     if (
         pipe_maze_part_two(EXAMPLE_3) == 4
-        and pipe_maze_part_two(EXAMPLE_4, True) == 8
+        and pipe_maze_part_two(EXAMPLE_4) == 8
         and pipe_maze_part_two(EXAMPLE_5) == 10
     ):
         print("PASSED TEST: EXAMPLE 2")
