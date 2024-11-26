@@ -1,6 +1,6 @@
 # Advent of code
 
-## Yers
+## Years
 
 - [2023](https://adventofcode.com/2023/)
 
